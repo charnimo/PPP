@@ -1,0 +1,36 @@
+# Node modules
+**/node_modules/
+**/dist/
+**/build/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS stuff
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.*.local
+
+# Electron specific
+electron-packager-output/
+release/
+*.exe
+*.app
+*.asar
+*.dmg
+*.deb
+*.snap
+*.rpm
+
+# Yarn & lock files (optional, if you don't want to track them)
+yarn.lock
+package-lock.json
+
+# IDE stuff
+.vscode/
+.idea/

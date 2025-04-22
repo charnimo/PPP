@@ -1,0 +1,30 @@
+# Dependencies
+**/node_modules/
+**/dist/
+**/build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Env
+.env
+
+# Electron artifacts
+*.asar
+*.exe
+*.dmg
+release/
+output/
+
+# Lock files (optional)
+package-lock.json
+yarn.lock
+
+# IDE/editor settings
+.vscode/
+.idea/
