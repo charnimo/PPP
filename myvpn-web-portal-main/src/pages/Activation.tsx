@@ -5,52 +5,63 @@ import { motion } from "framer-motion";
 const Activation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { email, password, name } = location.state || {};
+  const { email, password, username } = location.state || {};
 
   const [code, setCode] = useState("");
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes
 
   useEffect(() => {
-   
-
     const timer = setInterval(() => {
       setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
     }, 1000);
-
     return () => clearInterval(timer);
-  }, [email, password, name, navigate]);
+  }, []);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Send code verification request
-    console.log("Verify code:", code);
+    try {
+      const response = await window.electron.ipcRenderer.invoke("api-request", {
+        path: "/validate",
+        method: "POST",
+        body: { email, code }
+      });
 
-    // Example: navigate("/dashboard");
+      const { statusCode } = response;
+      if (statusCode === 200) {
+        navigate("/login", {
+          state: { email, password, username }
+        });
+      } else {
+        alert("Invalid code. Please try again.");
+      }
+    } catch (err) {
+      console.error("Activation error:", err);
+      alert("An error occurred while verifying your code.");
+    }
   };
 
   const handleResend = async () => {
-    console.log("Resend with credentials:", { email, password, name });
+    console.log("Resend with credentials:", { email, password, username });
 
     try {
-      // Call API to resend code using existing credentials
-      const res = await fetch("/api/resend-code", {
+      const response = await window.electron.ipcRenderer.invoke("api-request", {
+        path: "/resend-code", // adjust if your actual endpoint is different
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name }),
+        body: { email, password, username }
       });
 
-      if (res.ok) {
+      if (response.statusCode === 200) {
         alert("Activation code resent.");
         setTimeLeft(900); // Reset timer
       } else {
         alert("Failed to resend activation code.");
       }
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Resend error:", err);
     }
   };
 

@@ -1,29 +1,53 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Lock, ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion"; 
 
-
-
 const Login = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Extract state passed from the Register page, if any
+  const { email: passedEmail, password: passedPassword } = location.state || {};
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
 
-  function handleLogin(e: React.FormEvent) {
+  useEffect(() => {
+    // Prefill values if passed from registration
+    if (passedEmail) setEmail(passedEmail);
+    if (passedPassword) setPassword(passedPassword);
+  }, [passedEmail, passedPassword]);
+
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (email && password) {
-      navigate("/dashboard");
+      try {
+        const response = await window.electron.ipcRenderer.invoke('api-request', {
+          path: '/login',
+          method: 'POST',
+          body: { email, password }
+        });
+  
+        if (response.statusCode === 200) {
+          navigate("/dashboard");
+        } else {
+          alert("Login failed: " + response.data);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("An error occurred during login.");
+      }
     }
   }
+  
 
   return (
-    <div className="min-h-screen  flex items-center justify-center">
-      {/* Animation container */}
+    <div className="min-h-screen flex items-center justify-center">
       <motion.form
-        initial={{ opacity: 0, y: 50 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        exit={{ opacity: 0, y: -50 }} 
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -50 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         onSubmit={handleLogin}
         className="w-full max-w-md space-y-6 bg-white/90 p-8 rounded-2xl shadow-xl"
@@ -66,7 +90,6 @@ const Login = () => {
             Register
           </button>
         </p>
-
         <button
           type="button"
           onClick={() => navigate('/')}

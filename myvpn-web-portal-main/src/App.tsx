@@ -26,7 +26,7 @@ const queryClient = new QueryClient();
 const AnimatedRoutes = () => {
   const location = useLocation();
 
-  const animatedPaths = ["/", "/login", "/register"];
+  const animatedPaths = ["/", "/login", "/register", "/activate"];
   const isAnimatedPath = animatedPaths.includes(location.pathname);
 
   return (

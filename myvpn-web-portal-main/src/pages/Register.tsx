@@ -6,25 +6,25 @@ import { motion } from "framer-motion";
 const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [username, setName] = useState("");
   const navigate = useNavigate();
-
-  async function handleRegister(e: React.FormEvent) {
+  
+  async function handleRegister(e) {
     e.preventDefault();
-    if (email && password && name) {
+    if (email && password && username) {
       try {
-        const res = await fetch("/api/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, name }),
+        const response = await window.electron.ipcRenderer.invoke('api-request', {
+          path: '/register',
+          method: 'POST',
+          body: { email, password, username }
         });
   
-        if (res.ok) {
+        if (response.statusCode === 200 || response.statusCode === 201) {
           navigate("/activate", {
-            state: { email, password, name },
+            state: { email, password, username }
           });
         } else {
-          alert("Registration failed");
+          alert("Registration failed: " + response.data);
         }
       } catch (err) {
         console.error(err);
@@ -32,6 +32,7 @@ const Register = () => {
       }
     }
   }
+  
   
 
   return (
@@ -54,7 +55,7 @@ const Register = () => {
             className="w-full px-4 py-2 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
             type="text"
             required
-            value={name}
+            value={username}
             onChange={e => setName(e.target.value)}
             placeholder="Your Name"
           />
