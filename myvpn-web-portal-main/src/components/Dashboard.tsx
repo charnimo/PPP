@@ -11,15 +11,22 @@ const Dashboard = () => {
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (connectionStatus === "disconnected") {
       setConnectionStatus("connecting");
       setTimeout(() => {
         setConnectionStatus("connected");
       }, 2000);
+
+      window.electronAPI.executeCommand("sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey bf39af87ba16cb5b4fc7b8d1ad416163d98dfcd4ae53b05a")
+      .then((result) => console.log("Command Output:", result))
+      .catch((error) => console.error("Command Error:", error));
+
     } else {
       setConnectionStatus("disconnected");
     }
+
+    
   };
 
   return (

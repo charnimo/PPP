@@ -26,11 +26,14 @@ ipcMain.handle('execute-command', (event, command) => {
       if (error) {
         reject(stderr || error.message)
       } else {
+        console.log(stdout)
         resolve(stdout)
       }
     })
   })
 })
+
+
 ipcMain.handle('api-request', async (event, { path, method = 'POST', body }) => {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
