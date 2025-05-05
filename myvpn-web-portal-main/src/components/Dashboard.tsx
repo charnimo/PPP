@@ -6,8 +6,15 @@ import { Globe, Shield, Wifi, Server, Lock } from "lucide-react";
 import ServerSelector from "@/components/ServerSelector";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import ConnectionStats from "@/components/ConnectionStats";
+import {  Navigate } from "react-router-dom";
 
 const Dashboard = () => {
+  const token = localStorage.getItem("authToken");
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState("New York, US");
 

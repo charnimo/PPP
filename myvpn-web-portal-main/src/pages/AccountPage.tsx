@@ -5,8 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { User, CreditCard, Calendar, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import {  Navigate } from "react-router-dom";
 
 const AccountPage = () => {
+  const token = localStorage.getItem("authToken");
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
   return (
     <>
       <Helmet>
