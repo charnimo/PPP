@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,20 +14,45 @@ const Dashboard = () => {
     return <Navigate to="/login" replace />;
   }
 
+  console.log(token);
+
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
   const handleConnect = async () => {
     if (connectionStatus === "disconnected") {
       setConnectionStatus("connecting");
-      setTimeout(() => {
+
+      try {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+          throw new Error("Authorization token is missing");
+        }
+
+        // Use the existing api-request IPC handler to fetch the auth_key
+        const response = await window.electronAPI.apiRequest({
+          path: '/connect',
+          method: 'POST',
+          body: {
+            server_ip: '128.85.43.221',
+          },
+          headers: {
+            Authorization: `Bearer ${token}`, // Add the Bearer token
+          },
+        });
+
+        const { auth_key } = JSON.parse(response.data);
+
+        // Execute the Tailscale command with the retrieved auth_key
+        const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
+        await window.electronAPI.executeCommand(command);
+
+        console.log("VPN connected successfully");
         setConnectionStatus("connected");
-      }, 2000);
-
-      window.electronAPI.executeCommand("sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey bf39af87ba16cb5b4fc7b8d1ad416163d98dfcd4ae53b05a")
-      .then((result) => console.log("Command Output:", result))
-      .catch((error) => console.error("Command Error:", error));
-
+      } catch (error) {
+        console.error("Error during connection:", error);
+        setConnectionStatus("disconnected");
+      }
     } else {
       setConnectionStatus("disconnected");
     }
