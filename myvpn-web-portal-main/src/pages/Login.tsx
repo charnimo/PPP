@@ -30,6 +30,12 @@ const Login = () => {
         });
   
         if (response.statusCode === 200) {
+
+          const data = JSON.parse(response.data); // this because response.data is string not json
+          const  {access_token}  = data; // Assuming token is returned like { token: "..." }
+          console.log(access_token);
+          console.log(data);
+          localStorage.setItem('authToken', access_token);
           navigate("/dashboard");
         } else {
           alert("Login failed: " + response.data);

@@ -6,8 +6,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import {  Navigate } from "react-router-dom";
 
 const SettingsPage = () => {
+  const token = localStorage.getItem("authToken");
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
   return (
     <>
       <Helmet>

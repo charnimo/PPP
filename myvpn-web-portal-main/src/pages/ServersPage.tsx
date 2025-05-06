@@ -5,8 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, Server } from "lucide-react";
 import ServerSelector from "@/components/ServerSelector";
+import {  Navigate } from "react-router-dom";
 
 const ServersPage = () => {
+  const token = localStorage.getItem("authToken");
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
   return (
