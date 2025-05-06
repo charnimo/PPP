@@ -20,45 +20,43 @@ const Dashboard = () => {
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
   const handleConnect = async () => {
-    if (connectionStatus === "disconnected") {
-      setConnectionStatus("connecting");
+  if (connectionStatus === "disconnected") {
+    setConnectionStatus("connecting");
 
-      try {
-        const token = localStorage.getItem("authToken");
-        if (!token) {
-          throw new Error("Authorization token is missing");
-        }
-
-        // Use the existing api-request IPC handler to fetch the auth_key
-        const response = await window.electronAPI.apiRequest({
-          path: '/connect',
-          method: 'POST',
-          body: {
-            server_ip: '128.85.43.221',
-          },
-          headers: {
-            Authorization: `Bearer ${token}`, // Add the Bearer token
-          },
-        });
-
-        const { auth_key } = JSON.parse(response.data);
-
-        // Execute the Tailscale command with the retrieved auth_key
-        const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
-        await window.electronAPI.executeCommand(command);
-
-        console.log("VPN connected successfully");
-        setConnectionStatus("connected");
-      } catch (error) {
-        console.error("Error during connection:", error);
-        setConnectionStatus("disconnected");
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Authorization token is missing");
       }
-    } else {
+
+      // Corrected the ipcRenderer.invoke syntax
+      const response = await window.electron.ipcRenderer.invoke('api-request', {
+        path: '/connect',
+        method: 'POST',
+        body: {
+          server_ip: '128.85.43.221',
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const { auth_key } = JSON.parse(response.data);
+
+      // Build the Tailscale command with the auth key
+      const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
+      await window.electronAPI.executeCommand(command);
+
+      console.log("VPN connected successfully");
+      setConnectionStatus("connected");
+    } catch (error) {
+      console.error("Error during connection:", error);
       setConnectionStatus("disconnected");
     }
-
-    
-  };
+  } else {
+    setConnectionStatus("disconnected");
+  }
+};
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-5xl">
