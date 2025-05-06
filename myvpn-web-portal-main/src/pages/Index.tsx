@@ -4,6 +4,13 @@ import { motion } from "framer-motion";
 
 const Index = () => {
   const navigate = useNavigate();
+
+  const token = localStorage.getItem("authToken");
+  
+    if (token) {
+      return <Navigate to="/dashboard" replace />;
+    }
+
   return (
     <motion.div
     initial={{ opacity: 0, y: 50 }} 
