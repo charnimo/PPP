@@ -9,13 +9,11 @@ import {  Navigate } from "react-router-dom";
 
 const Dashboard = () => {
   const token = localStorage.getItem("authToken");
-  var auth_key = localStorage.getItem("auth_key");
-  console.log(auth_key);
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
- 
+
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
@@ -25,12 +23,13 @@ const Dashboard = () => {
     setConnectionStatus("connecting");
 
     try {
+    var auth_key = localStorage.getItem("auth_key");
       const token = localStorage.getItem("authToken");
       if (!token) {
         throw new Error("Authorization token is missing");
       }
 
-      if (auth_key=="undefined" || auth_key==null){
+      if ((auth_key=="undefined") || (auth_key==null)){
         console.log("creating a new key .....");
         const response = await window.electron.ipcRenderer.invoke('api-request', {
           path: '/connect',
@@ -43,7 +42,7 @@ const Dashboard = () => {
           },
         });
   
-        var {auth_key} = JSON.parse(response.data);
+        ({auth_key} = JSON.parse(response.data));
         console.log(response);
         console.log(auth_key);
         localStorage.setItem('auth_key', auth_key);
@@ -52,7 +51,12 @@ const Dashboard = () => {
       
 
       // Build the Tailscale command with the auth key
-      const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
+      var command = '~/.vpn/disconnect.sh';
+      console.log(command);
+      await window.electronAPI.executeCommand(command);
+
+
+      command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
       console.log(command);
 
       await window.electronAPI.executeCommand(command);
