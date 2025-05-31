@@ -33,21 +33,26 @@ ipcMain.handle('execute-command', (event, command) => {
   })
 })
 
-
-ipcMain.handle('api-request', async (event, { path, method = 'POST', body }) => {
+ipcMain.handle('api-request', async (event, { path, method = 'POST', body, headers = {} }) => {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(body);
+
+    const fullHeaders = {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(data),
+      ...headers,
+    };
 
     const options = {
       hostname: '128.85.43.221',
       port: 8085,
-      path, // dynamic path like '/login' or '/register'
+      path,
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': data.length
-      }
+      headers: fullHeaders,
     };
+
+    console.log("API REQUEST OPTIONS:", options);
+    console.log("API REQUEST BODY:", data);
 
     const req = http.request(options, (res) => {
       let responseData = '';
@@ -57,14 +62,16 @@ ipcMain.handle('api-request', async (event, { path, method = 'POST', body }) => 
       });
 
       res.on('end', () => {
+        console.log("API RESPONSE:", responseData);
         resolve({
           statusCode: res.statusCode,
-          data: responseData
+          data: responseData,
         });
       });
     });
 
     req.on('error', (error) => {
+      console.error("API REQUEST ERROR:", error);
       reject(error);
     });
 
@@ -72,6 +79,7 @@ ipcMain.handle('api-request', async (event, { path, method = 'POST', body }) => 
     req.end();
   });
 });
+
 
 app.whenReady().then(() => {
   createWindow()

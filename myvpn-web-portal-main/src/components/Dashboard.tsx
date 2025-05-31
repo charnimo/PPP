@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,56 +9,66 @@ import {  Navigate } from "react-router-dom";
 
 const Dashboard = () => {
   const token = localStorage.getItem("authToken");
-
+  var auth_key = localStorage.getItem("auth_key");
+  console.log(auth_key);
   if (!token) {
     return <Navigate to="/login" replace />;
   }
+
 
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
   const handleConnect = async () => {
-    if (connectionStatus === "disconnected") {
-      setConnectionStatus("connecting");
-      var auth_key;
-      var host="128.85.43.221";
-      var port=8081;
-      try {
+  
+  if (connectionStatus === "disconnected") {
+    setConnectionStatus("connecting");
+
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Authorization token is missing");
+      }
+
+      if (auth_key=="undefined" || auth_key==null){
+        console.log("creating a new key .....");
         const response = await window.electron.ipcRenderer.invoke('api-request', {
           path: '/connect',
           method: 'POST',
+          body: {
+            server_ip: '128.85.43.221',
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        console.log(response.data);
-        if (response.statusCode === 200) {
-
-          const data = JSON.parse(response.data); // this because response.data is string not json
-          console.log(data);
-          auth_key  = data["auth_key"]; // Assuming token is returned like { token: "..." }
-          window.electronAPI.executeCommand(`sudo tailscale up --login-server=http://${host}:${port} --authkey ${auth_key}`)
-          .then((result) => console.log("Command Output:", result))
-          .catch((error) => console.error("Command Error:", error));
-          setConnectionStatus("connected");
-
-        } else {
-          alert("key creation failed ");
-          setConnectionStatus("disconnected");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("An error occurred during key creation.");
-        setConnectionStatus("disconnected");
+  
+        var {auth_key} = JSON.parse(response.data);
+        console.log(response);
+        console.log(auth_key);
+        localStorage.setItem('auth_key', auth_key);
       }
-    } else {
+      // Corrected the ipcRenderer.invoke syntax
+      
 
-      window.electronAPI.executeCommand("~/.vpn/disconnect.sh")
-      .then((result) => console.log("Command Output:", result))
-      .catch((error) => console.error("Command Error:", error));
+      // Build the Tailscale command with the auth key
+      const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
+      console.log(command);
 
+      await window.electronAPI.executeCommand(command);
+
+      console.log("VPN connected successfully");
+      setConnectionStatus("connected");
+    } catch (error) {
+      console.error("Error during connection:", error);
       setConnectionStatus("disconnected");
     }
-
-    
-  };
+  } else {
+    setConnectionStatus("disconnected");
+    const command = `sudo tailscale down`;
+    await window.electronAPI.executeCommand(command);
+  }
+};
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-5xl">
