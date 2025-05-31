@@ -1,8 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { Lock, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion"; 
+import {  Navigate } from "react-router-dom";
 
 const Index = () => {
+  const token = localStorage.getItem("authToken");
+
+  if (token) {
+    return <Navigate to="/dashboard" replace />;
+  }
   const navigate = useNavigate();
   return (
     <motion.div
@@ -35,14 +41,7 @@ const Index = () => {
         </div>
       </div>
       <div className="mt-12 text-gray-400 flex flex-col items-center gap-2">
-        <span>Looking for your Dashboard?</span>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-2 text-blue-600 hover:underline mt-1"
-        >
-          Go to Dashboard
-          <ArrowRight />
-        </button>
+        
       </div>
     </motion.div>
   );

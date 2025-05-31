@@ -101,7 +101,10 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => navigate("/")}>
+            <SidebarMenuButton onClick={() => {
+                localStorage.removeItem("authToken");
+                navigate("/")}
+              }>
               <LogOut className="h-5 w-5 mr-3" />
               <span>Logout</span>
             </SidebarMenuButton>

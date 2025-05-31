@@ -21,15 +21,40 @@ const Dashboard = () => {
   const handleConnect = async () => {
     if (connectionStatus === "disconnected") {
       setConnectionStatus("connecting");
-      setTimeout(() => {
-        setConnectionStatus("connected");
-      }, 2000);
+      var auth_key;
+      var host="128.85.43.221";
+      var port=8081;
+      try {
+        const response = await window.electron.ipcRenderer.invoke('api-request', {
+          path: '/connect',
+          method: 'POST',
+        });
+        console.log(response.data);
+        if (response.statusCode === 200) {
 
-      window.electronAPI.executeCommand("sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey bf39af87ba16cb5b4fc7b8d1ad416163d98dfcd4ae53b05a")
+          const data = JSON.parse(response.data); // this because response.data is string not json
+          console.log(data);
+          auth_key  = data["auth_key"]; // Assuming token is returned like { token: "..." }
+          window.electronAPI.executeCommand(`sudo tailscale up --login-server=http://${host}:${port} --authkey ${auth_key}`)
+          .then((result) => console.log("Command Output:", result))
+          .catch((error) => console.error("Command Error:", error));
+          setConnectionStatus("connected");
+
+        } else {
+          alert("key creation failed ");
+          setConnectionStatus("disconnected");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("An error occurred during key creation.");
+        setConnectionStatus("disconnected");
+      }
+    } else {
+
+      window.electronAPI.executeCommand("~/.vpn/disconnect.sh")
       .then((result) => console.log("Command Output:", result))
       .catch((error) => console.error("Command Error:", error));
 
-    } else {
       setConnectionStatus("disconnected");
     }
 
