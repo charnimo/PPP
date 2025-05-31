@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,8 @@ const Dashboard = () => {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
+
+  console.log(token);
 
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState("New York, US");
@@ -55,11 +56,13 @@ const Dashboard = () => {
       .then((result) => console.log("Command Output:", result))
       .catch((error) => console.error("Command Error:", error));
 
+
       setConnectionStatus("disconnected");
     }
-
-    
-  };
+  } else {
+    setConnectionStatus("disconnected");
+  }
+};
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-5xl">
