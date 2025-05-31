@@ -20,37 +20,43 @@ const Dashboard = () => {
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
   const handleConnect = async () => {
-  if (connectionStatus === "disconnected") {
-    setConnectionStatus("connecting");
+    if (connectionStatus === "disconnected") {
+      setConnectionStatus("connecting");
+      var auth_key;
+      var host="128.85.43.221";
+      var port=8081;
+      try {
+        const response = await window.electron.ipcRenderer.invoke('api-request', {
+          path: '/connect',
+          method: 'POST',
+        });
+        console.log(response.data);
+        if (response.statusCode === 200) {
 
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        throw new Error("Authorization token is missing");
+          const data = JSON.parse(response.data); // this because response.data is string not json
+          console.log(data);
+          auth_key  = data["auth_key"]; // Assuming token is returned like { token: "..." }
+          window.electronAPI.executeCommand(`sudo tailscale up --login-server=http://${host}:${port} --authkey ${auth_key}`)
+          .then((result) => console.log("Command Output:", result))
+          .catch((error) => console.error("Command Error:", error));
+          setConnectionStatus("connected");
+
+        } else {
+          alert("key creation failed ");
+          setConnectionStatus("disconnected");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("An error occurred during key creation.");
+        setConnectionStatus("disconnected");
       }
+    } else {
 
-      // Corrected the ipcRenderer.invoke syntax
-      const response = await window.electron.ipcRenderer.invoke('api-request', {
-        path: '/connect',
-        method: 'POST',
-        body: {
-          server_ip: '128.85.43.221',
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      window.electronAPI.executeCommand("~/.vpn/disconnect.sh")
+      .then((result) => console.log("Command Output:", result))
+      .catch((error) => console.error("Command Error:", error));
 
-      const { auth_key } = JSON.parse(response.data);
 
-      // Build the Tailscale command with the auth key
-      const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
-      await window.electronAPI.executeCommand(command);
-
-      console.log("VPN connected successfully");
-      setConnectionStatus("connected");
-    } catch (error) {
-      console.error("Error during connection:", error);
       setConnectionStatus("disconnected");
     }
   } else {
