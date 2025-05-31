@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,26 +14,49 @@ const Dashboard = () => {
     return <Navigate to="/login" replace />;
   }
 
+  console.log(token);
+
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
   const handleConnect = async () => {
-    if (connectionStatus === "disconnected") {
-      setConnectionStatus("connecting");
-      setTimeout(() => {
-        setConnectionStatus("connected");
-      }, 2000);
+  if (connectionStatus === "disconnected") {
+    setConnectionStatus("connecting");
 
-      window.electronAPI.executeCommand("sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey bf39af87ba16cb5b4fc7b8d1ad416163d98dfcd4ae53b05a")
-      .then((result) => console.log("Command Output:", result))
-      .catch((error) => console.error("Command Error:", error));
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Authorization token is missing");
+      }
 
-    } else {
+      // Corrected the ipcRenderer.invoke syntax
+      const response = await window.electron.ipcRenderer.invoke('api-request', {
+        path: '/connect',
+        method: 'POST',
+        body: {
+          server_ip: '128.85.43.221',
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const { auth_key } = JSON.parse(response.data);
+
+      // Build the Tailscale command with the auth key
+      const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
+      await window.electronAPI.executeCommand(command);
+
+      console.log("VPN connected successfully");
+      setConnectionStatus("connected");
+    } catch (error) {
+      console.error("Error during connection:", error);
       setConnectionStatus("disconnected");
     }
-
-    
-  };
+  } else {
+    setConnectionStatus("disconnected");
+  }
+};
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-5xl">
