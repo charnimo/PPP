@@ -1,4 +1,6 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Globe, Shield, Wifi, Server, Lock } from "lucide-react";
@@ -19,56 +21,68 @@ const Dashboard = () => {
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState("New York, US");
 
+    useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        const result = await window.electronAPI.executeCommand("tailscale status");
+
+        if (result && result.includes("100.64")) { // Rough example for Tailscale IP
+          setConnectionStatus("connected");
+        } else {
+          setConnectionStatus("disconnected");
+        }
+      } catch (error) {
+        console.error("Failed to check connection status:", error);
+        setConnectionStatus("disconnected");
+      }
+    };
+
+    checkInitialStatus();
+  }, []);
+
   const handleConnect = async () => {
-  
-  if (connectionStatus === "disconnected") {
-    setConnectionStatus("connecting");
+    if (connectionStatus === "disconnected") {
+      setConnectionStatus("connecting");
 
-    try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        throw new Error("Authorization token is missing");
+      try {
+        const token = localStorage.getItem("authToken");
+        if (!token) throw new Error("Authorization token is missing");
+
+        if (!auth_key || auth_key === "undefined") {
+          console.log("creating a new key .....");
+          const response = await window.electron.ipcRenderer.invoke("api-request", {
+            path: "/connect",
+            method: "POST",
+            body: {
+              server_ip: "128.85.43.221",
+            },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          var { auth_key } = JSON.parse(response.data);
+          console.log(response);
+          localStorage.setItem("auth_key", auth_key);
+        }
+
+        const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
+        console.log(command);
+
+        await window.electronAPI.executeCommand(command);
+
+        console.log("VPN connected successfully");
+        setConnectionStatus("connected");
+      } catch (error) {
+        console.error("Error during connection:", error);
+        setConnectionStatus("disconnected");
       }
-
-      if (auth_key=="undefined" || auth_key==null){
-        console.log("creating a new key .....");
-        const response = await window.electron.ipcRenderer.invoke('api-request', {
-          path: '/connect',
-          method: 'POST',
-          body: {
-            server_ip: '128.85.43.221',
-          },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-  
-        var {auth_key} = JSON.parse(response.data);
-        console.log(response);
-        console.log(auth_key);
-        localStorage.setItem('auth_key', auth_key);
-      }
-      // Corrected the ipcRenderer.invoke syntax
-      
-
-      // Build the Tailscale command with the auth key
-      const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
-      console.log(command);
-
-      await window.electronAPI.executeCommand(command);
-
-      console.log("VPN connected successfully");
-      setConnectionStatus("connected");
-    } catch (error) {
-      console.error("Error during connection:", error);
+    } else {
       setConnectionStatus("disconnected");
+      const command = `sudo tailscale down`;
+      await window.electronAPI.executeCommand(command);
     }
-  } else {
-    setConnectionStatus("disconnected");
-    const command = `sudo tailscale down`;
-    await window.electronAPI.executeCommand(command);
-  }
-};
+  };
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-5xl">
