@@ -1,31 +1,39 @@
-
 import { useEffect, useState } from "react";
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Globe, Shield, Wifi, Server, Lock } from "lucide-react";
 import ServerSelector from "@/components/ServerSelector";
 import ConnectionStatus from "@/components/ConnectionStatus";
 import ConnectionStats from "@/components/ConnectionStats";
-import {  Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
+
+interface Server {
+  name: string;
+  ip: string;
+  location: string;
+}
 
 const Dashboard = () => {
   const token = localStorage.getItem("authToken");
   var auth_key = localStorage.getItem("auth_key");
   console.log(auth_key);
+  
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-
-
+  
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
-  const [selectedServer, setSelectedServer] = useState("New York, US");
-
-    useEffect(() => {
+  const [selectedServer, setSelectedServer] = useState<Server>({
+    name: "Server 1",
+    ip: "128.85.43.221",
+    location: "New York, US"
+  });
+  
+  useEffect(() => {
     const checkInitialStatus = async () => {
       try {
         const result = await window.electronAPI.executeCommand("tailscale status");
-
+        
         if (result && result.includes("100.64")) { // Rough example for Tailscale IP
           setConnectionStatus("connected");
         } else {
@@ -36,41 +44,41 @@ const Dashboard = () => {
         setConnectionStatus("disconnected");
       }
     };
-
+    
     checkInitialStatus();
   }, []);
 
   const handleConnect = async () => {
     if (connectionStatus === "disconnected") {
       setConnectionStatus("connecting");
-
+      
       try {
         const token = localStorage.getItem("authToken");
         if (!token) throw new Error("Authorization token is missing");
-
+        
         if (!auth_key || auth_key === "undefined") {
           console.log("creating a new key .....");
           const response = await window.electron.ipcRenderer.invoke("api-request", {
             path: "/connect",
             method: "POST",
             body: {
-              server_ip: "128.85.43.221",
+              server_ip: selectedServer.ip, // Use the selected server's IP
             },
             headers: {
               Authorization: `Bearer ${token}`,
             },
           });
-
+          
           var { auth_key } = JSON.parse(response.data);
           console.log(response);
           localStorage.setItem("auth_key", auth_key);
         }
-
-        const command = `sudo tailscale up --login-server=http://128.85.43.221:8081 --authkey ${auth_key}`;
+        
+        const command = `sudo tailscale up --login-server=http://${selectedServer.ip}:8081 --authkey ${auth_key}`;
         console.log(command);
-
+        
         await window.electronAPI.executeCommand(command);
-
+        
         console.log("VPN connected successfully");
         setConnectionStatus("connected");
       } catch (error) {
@@ -81,6 +89,14 @@ const Dashboard = () => {
       setConnectionStatus("disconnected");
       const command = `sudo tailscale down`;
       await window.electronAPI.executeCommand(command);
+    }
+  };
+
+  const handleServerSelect = (server: Server) => {
+    setSelectedServer(server);
+    // Clear auth_key when switching servers to force new key generation
+    if (connectionStatus === "disconnected") {
+      localStorage.removeItem("auth_key");
     }
   };
 
@@ -104,7 +120,9 @@ const Dashboard = () => {
                   <Globe className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Selected Server</p>
-                    <p className="text-lg font-semibold">{selectedServer}</p>
+                    <p className="text-lg font-semibold">{selectedServer.name}</p>
+                    <p className="text-sm text-muted-foreground">{selectedServer.location}</p>
+                    <p className="text-xs text-muted-foreground">{selectedServer.ip}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -118,12 +136,22 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              <Button 
-                className={`w-full ${connectionStatus === "connected" ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}`} 
-                size="lg" 
+              <Button
+                className={`w-full ${
+                  connectionStatus === "connected" 
+                    ? "bg-destructive hover:bg-destructive/90" 
+                    : "bg-primary hover:bg-primary/90"
+                }`}
+                size="lg"
                 onClick={handleConnect}
+                disabled={connectionStatus === "connecting"}
               >
-                {connectionStatus === "connected" ? "Disconnect" : connectionStatus === "connecting" ? "Connecting..." : "Connect"}
+                {connectionStatus === "connected" 
+                  ? "Disconnect" 
+                  : connectionStatus === "connecting" 
+                    ? "Connecting..." 
+                    : "Connect"
+                }
               </Button>
               
               {connectionStatus === "connected" && <ConnectionStats />}
@@ -131,7 +159,10 @@ const Dashboard = () => {
           </CardContent>
         </Card>
         
-        <ServerSelector onServerSelect={setSelectedServer} selectedServer={selectedServer} />
+        <ServerSelector 
+          onServerSelect={handleServerSelect} 
+          selectedServer={selectedServer} 
+        />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
