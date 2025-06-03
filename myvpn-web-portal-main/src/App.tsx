@@ -20,6 +20,7 @@ import Login from "./pages/Login";
 import Dashboard from "./components/Dashboard";
 import Register from "./pages/Register";
 import Activation from "./pages/Activation";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const AnimatedRoutes = () => {
             <Route path="/servers" element={<ServersPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/account" element={<AccountPage />} />
+             <Route path="/admin" element={<Admin />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
