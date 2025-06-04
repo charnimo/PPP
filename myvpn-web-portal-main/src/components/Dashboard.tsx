@@ -17,8 +17,6 @@ interface Server {
 
 const Dashboard = () => {
   const token = localStorage.getItem("authToken");
-  var auth_key = localStorage.getItem("auth_key");
-  console.log(auth_key);
   
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -58,6 +56,7 @@ const Dashboard = () => {
         const token = localStorage.getItem("authToken");
         if (!token) throw new Error("Authorization token is missing");
         
+          var auth_key = localStorage.getItem("auth_key");
         if (!auth_key || auth_key === "undefined") {
           console.log("creating a new key .....");
           const response = await window.electron.ipcRenderer.invoke("api-request", {
@@ -71,7 +70,7 @@ const Dashboard = () => {
             },
           });
           
-          var { auth_key } = JSON.parse(response.data);
+          ({ auth_key } = JSON.parse(response.data));
           console.log(response);
           localStorage.setItem("auth_key", auth_key);
         }
