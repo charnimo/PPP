@@ -1,5 +1,6 @@
-
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +27,18 @@ import {
 export function AppSidebar() {
   const navigate = useNavigate();
 
+  const authToken = localStorage.getItem("authToken");
+
+  let userRole = null;
+  if (authToken) {
+    try {
+      const decoded: any = jwtDecode(authToken);
+      userRole = decoded?.role || null;
+    } catch (error) {
+      console.error("Failed to decode JWT:", error);
+    }
+  }
+
   const mainMenuItems = [
     {
       title: "Dashboard",
@@ -47,12 +60,15 @@ export function AppSidebar() {
       icon: User,
       path: "/account"
     },
-    {
-      title: "Admn",
-      icon: User,
-      path: "/admin"
-    }
-    
+    ...(userRole === "admin"
+      ? [
+          {
+            title: "Admin",
+            icon: User,
+            path: "/admin"
+          }
+        ]
+      : [])
   ];
 
   const supportMenuItems = [
@@ -69,7 +85,7 @@ export function AppSidebar() {
         <Shield className="h-6 w-6 text-sidebar-foreground mr-2" />
         <span className="text-lg font-bold text-sidebar-foreground">MY_VPN</span>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Main</SidebarGroupLabel>
@@ -86,7 +102,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
+
         <SidebarGroup>
           <SidebarGroupLabel>Support</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -103,14 +119,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      
+
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => {
+            <SidebarMenuButton
+              onClick={() => {
                 localStorage.removeItem("authToken");
-                navigate("/")}
-              }>
+                navigate("/");
+              }}
+            >
               <LogOut className="h-5 w-5 mr-3" />
               <span>Logout</span>
             </SidebarMenuButton>
