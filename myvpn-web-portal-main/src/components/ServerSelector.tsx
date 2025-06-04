@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -7,30 +6,37 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Globe } from "lucide-react";
 
+interface Server {
+  name: string;
+  ip: string;
+  location: string;
+}
+
 interface ServerSelectorProps {
-  onServerSelect: (server: string) => void;
-  selectedServer: string;
+  onServerSelect: (server: Server) => void;
+  selectedServer: Server;
 }
 
 const ServerSelector = ({ onServerSelect, selectedServer }: ServerSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   
-  const servers = [
-    "New York, US",
-    "Los Angeles, US",
-    "Chicago, US",
-    "Toronto, CA",
-    "London, UK",
-    "Amsterdam, NL",
-    "Frankfurt, DE",
-    "Paris, FR",
-    "Tokyo, JP",
-    "Singapore, SG",
-    "Sydney, AU",
+  const servers: Server[] = [
+    {
+      name: "Server 1",
+      ip: "128.85.43.221",
+      location: "New York, US"
+    },
+    {
+      name: "Server 2", 
+      ip: "4.251.118.138", // Replace with your actual second server IP
+      location: "London, UK"
+    }
   ];
   
-  const filteredServers = servers.filter(server => 
-    server.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredServers = servers.filter(server =>
+    server.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    server.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    server.ip.includes(searchQuery)
   );
   
   return (
@@ -44,22 +50,38 @@ const ServerSelector = ({ onServerSelect, selectedServer }: ServerSelectorProps)
       <CardContent>
         <div className="space-y-4">
           <Input 
-            placeholder="Search server locations..." 
+            placeholder="Search server locations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="mb-2"
           />
           
           <ScrollArea className="h-[280px] pr-4">
-            <RadioGroup 
-              value={selectedServer} 
-              onValueChange={onServerSelect}
+            <RadioGroup
+              value={selectedServer.ip}
+              onValueChange={(value) => {
+                const server = servers.find(s => s.ip === value);
+                if (server) onServerSelect(server);
+              }}
               className="space-y-2"
             >
               {filteredServers.map(server => (
-                <div key={server} className={`flex items-center space-x-2 rounded-md border p-3 transition-colors ${selectedServer === server ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
-                  <RadioGroupItem value={server} id={server} />
-                  <Label htmlFor={server} className="flex-grow cursor-pointer">{server}</Label>
+                <div 
+                  key={server.ip} 
+                  className={`flex items-center space-x-2 rounded-md border p-3 transition-colors ${
+                    selectedServer.ip === server.ip 
+                      ? 'border-primary bg-primary/5' 
+                      : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <RadioGroupItem value={server.ip} id={server.ip} />
+                  <Label htmlFor={server.ip} className="flex-grow cursor-pointer">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{server.name}</span>
+                      <span className="text-sm text-muted-foreground">{server.location}</span>
+                      <span className="text-xs text-muted-foreground">{server.ip}</span>
+                    </div>
+                  </Label>
                 </div>
               ))}
               

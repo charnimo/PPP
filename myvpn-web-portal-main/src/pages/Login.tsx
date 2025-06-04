@@ -6,19 +6,17 @@ import { motion } from "framer-motion";
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
   // Extract state passed from the Register page, if any
   const { email: passedEmail, password: passedPassword } = location.state || {};
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  
   useEffect(() => {
     // Prefill values if passed from registration
     if (passedEmail) setEmail(passedEmail);
     if (passedPassword) setPassword(passedPassword);
   }, [passedEmail, passedPassword]);
-
+  
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (email && password) {
@@ -30,12 +28,17 @@ const Login = () => {
         });
   
         if (response.statusCode === 200) {
-
           const data = JSON.parse(response.data); // this because response.data is string not json
-          const  {access_token}  = data; // Assuming token is returned like { token: "..." }
-          console.log(access_token);
-          console.log(data);
+          const { access_token, username, email: userEmail, role } = data;
+          
+          console.log("Login successful:", data);
+          
+          // Store all user data in localStorage
           localStorage.setItem('authToken', access_token);
+          localStorage.setItem('username', username);
+          localStorage.setItem('userEmail', userEmail);
+          localStorage.setItem('userRole', role);
+          
           navigate("/dashboard");
         } else {
           alert("Login failed: " + response.data);
@@ -47,7 +50,6 @@ const Login = () => {
     }
   }
   
-
   return (
     <div className="min-h-screen flex items-center justify-center">
       <motion.form

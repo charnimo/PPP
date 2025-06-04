@@ -35,14 +35,16 @@ ipcMain.handle('execute-command', (event, command) => {
 
 ipcMain.handle('api-request', async (event, { path, method = 'POST', body, headers = {} }) => {
   return new Promise((resolve, reject) => {
-    const data = JSON.stringify(body);
-
-    const fullHeaders = {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(data),
-      ...headers,
-    };
-
+    // Only stringify and set content headers if there's a body
+    let data = '';
+    const fullHeaders = { ...headers };
+    
+    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+      data = JSON.stringify(body);
+      fullHeaders['Content-Type'] = 'application/json';
+      fullHeaders['Content-Length'] = Buffer.byteLength(data);
+    }
+    
     const options = {
       hostname: '128.85.43.221',
       port: 8085,
@@ -50,17 +52,16 @@ ipcMain.handle('api-request', async (event, { path, method = 'POST', body, heade
       method,
       headers: fullHeaders,
     };
-
+    
     console.log("API REQUEST OPTIONS:", options);
     console.log("API REQUEST BODY:", data);
+    
 
     const req = http.request(options, (res) => {
       let responseData = '';
-
       res.on('data', (chunk) => {
         responseData += chunk;
       });
-
       res.on('end', () => {
         console.log("API RESPONSE:", responseData);
         resolve({
@@ -69,13 +70,16 @@ ipcMain.handle('api-request', async (event, { path, method = 'POST', body, heade
         });
       });
     });
-
+    
     req.on('error', (error) => {
       console.error("API REQUEST ERROR:", error);
       reject(error);
     });
-
-    req.write(data);
+    
+    // Only write data if there's a body
+    if (data) {
+      req.write(data);
+    }
     req.end();
   });
 });

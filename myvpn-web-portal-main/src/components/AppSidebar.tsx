@@ -46,7 +46,13 @@ export function AppSidebar() {
       title: "Account",
       icon: User,
       path: "/account"
+    },
+    {
+      title: "Admn",
+      icon: User,
+      path: "/admin"
     }
+    
   ];
 
   const supportMenuItems = [
