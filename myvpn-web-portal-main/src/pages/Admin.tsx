@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Server, Wifi, Clock, MapPin } from "lucide-react";
+// Note: Using basic table styling since @/components/ui/table is not available
+import { Users, Server, Wifi, Clock, MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HeadscaleNode {
@@ -15,8 +15,8 @@ interface HeadscaleNode {
   user: string;
   ipAddresses: string[];
   ephemeral: boolean;
-  lastSeen: string;
-  expiration: string;
+  lastSeen: string;     // ISO date string
+  expiration: string;   // ISO date string
   connected: boolean;
   expired: boolean;
 }
@@ -32,103 +32,96 @@ const Admin = () => {
   const [serversData, setServersData] = useState<ServerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data to simulate the headscale server response
-  const mockData: ServerData[] = [
-    {
-      serverId: "headscale-1",
-      serverName: "Primary Headscale Server",
-      lastUpdated: "2025-01-03T10:30:00Z",
-      nodes: [
-        {
-          id: "1",
-          hostname: "kali",
-          name: "kali",
-          machineKey: "[4Gm15]",
-          nodeKey: "[8df@0]",
-          user: "ppp",
-          ipAddresses: ["100.64.0.1", "fd7a:115c:a1e0:r11"],
-          ephemeral: false,
-          lastSeen: "2025-01-16 17:19:50",
-          expiration: "N/A",
-          connected: false,
-          expired: false
+  // Function to fetch data from /servers endpoint
+  const fetchServersData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem("auth_key");
+      
+      if (!token) {
+        throw new Error("No authentication token found. Please login first.");
+      }
+
+      const response = await window.electron.ipcRenderer.invoke("api-request", {
+        path: "/servers",
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          id: "2",
-          hostname: "machine",
-          name: "machine",
-          machineKey: "[G3pt1]",
-          nodeKey: "[dMJeY]",
-          user: "ppp",
-          ipAddresses: ["100.64.0.2", "fd7a:115c:a1e0:r12"],
-          ephemeral: false,
-          lastSeen: "2025-01-16 17:20:10",
-          expiration: "N/A",
-          connected: true,
-          expired: false
-        },
-        {
-          id: "3",
-          hostname: "kali",
-          name: "kali-8dzwqjGvt",
-          machineKey: "[Nedme]",
-          nodeKey: "[RGVkl]",
-          user: "ppp",
-          ipAddresses: ["100.64.0.3", "fd7a:115c:a1e0:r13"],
-          ephemeral: false,
-          lastSeen: "2025-01-16 17:25:10",
-          expiration: "N/A",
-          connected: true,
-          expired: false
-        }
-      ]
-    },
-    {
-      serverId: "headscale-2",
-      serverName: "Secondary Headscale Server",
-      lastUpdated: "2025-01-03T10:28:00Z",
-      nodes: [
-        {
-          id: "4",
-          hostname: "localhost",
-          name: "localhost",
-          machineKey: "[EtLR5]",
-          nodeKey: "[G5rGa]",
-          user: "ppp",
-          ipAddresses: ["100.64.0.29", "fd7a:115c:a1e0:r17"],
-          ephemeral: false,
-          lastSeen: "2025-05-06 15:31:40",
-          expiration: "N/A",
-          connected: false,
-          expired: false
-        }
-      ]
+      });
+
+      console.log("API Response:", response); // Debug log
+
+      // Check if response and response.data exist
+      if (!response) {
+        throw new Error("No response received from server");
+      }
+
+      if (!response.data) {
+        throw new Error("No data in response");
+      }
+
+      // Handle different response formats
+      let data;
+      if (typeof response.data === 'string') {
+        data = JSON.parse(response.data);
+      } else if (typeof response.data === 'object') {
+        data = response.data; // Already parsed
+      } else {
+        throw new Error("Invalid response data format");
+      }
+      
+      // Transform the API response to match the component's expected format
+      // Adjust this based on your actual JSON structure from /servers
+      let transformedData: ServerData[];
+      
+      if (Array.isArray(data)) {
+        // If data is an array of servers
+        transformedData = data.map((server: any, index: number) => ({
+          serverId: server.id || `server-${index}`,
+          serverName: server.name || `Headscale Server ${index + 1}`,
+          lastUpdated: server.lastUpdated || new Date().toISOString(),
+          nodes: server.nodes || [],
+        }));
+      } else if (data.servers && Array.isArray(data.servers)) {
+        // If data has a servers array property
+        transformedData = data.servers.map((server: any, index: number) => ({
+          serverId: server.id || `server-${index}`,
+          serverName: server.name || `Headscale Server ${index + 1}`,
+          lastUpdated: server.lastUpdated || new Date().toISOString(),
+          nodes: server.nodes || [],
+        }));
+      } else {
+        // If it's a single server with nodes
+        transformedData = [{
+          serverId: data.id || "default",
+          serverName: data.name || "Headscale Server",
+          lastUpdated: data.lastUpdated || new Date().toISOString(),
+          nodes: data.nodes || data,
+        }];
+      }
+      
+      setServersData(transformedData);
+      setLastRefresh(new Date());
+      
+    } catch (err) {
+      console.error("Error fetching servers data:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch data");
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
   useEffect(() => {
-    // Simulate API call to fetch data from headscale servers
-    const fetchData = async () => {
-      setIsLoading(true);
-      // In a real implementation, this would fetch from actual headscale API endpoints
-      setTimeout(() => {
-        setServersData(mockData);
-        setIsLoading(false);
-        setLastRefresh(new Date());
-      }, 1000);
-    };
-
-    fetchData();
+    fetchServersData();
   }, []);
 
   const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setServersData(mockData);
-      setIsLoading(false);
-      setLastRefresh(new Date());
-    }, 1000);
+    fetchServersData();
   };
 
   const getTotalUsers = () => {
@@ -162,6 +155,19 @@ const Admin = () => {
             {isLoading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
+                <AlertCircle className="h-4 w-4" />
+                <span className="font-medium">Error:</span>
+                <span>{error}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -211,7 +217,7 @@ const Admin = () => {
         </div>
 
         {/* Server Tables */}
-        {serversData.map((server) => (
+        {!isLoading && !error && serversData.map((server) => (
           <Card key={server.serverId} className="w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -223,62 +229,68 @@ const Admin = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Hostname</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead>IP Addresses</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Seen</TableHead>
-                      <TableHead>Ephemeral</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {server.nodes.map((node) => (
-                      <TableRow key={node.id}>
-                        <TableCell className="font-mono text-sm">{node.id}</TableCell>
-                        <TableCell className="font-medium">{node.hostname}</TableCell>
-                        <TableCell className="font-mono text-sm">{node.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{node.user}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            {node.ipAddresses.map((ip, index) => (
-                              <div key={index} className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                                <MapPin className="inline h-3 w-3 mr-1" />
-                                {ip}
-                              </div>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <Badge variant={node.connected ? "default" : "secondary"}>
-                              {node.connected ? "Online" : "Offline"}
+              {server.nodes.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  No nodes found for this server
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-200 dark:border-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
+                      <tr>
+                        <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">ID</th>
+                        <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Hostname</th>
+                        <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Name</th>
+                        <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">User</th>
+                        <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">IP Addresses</th>
+                        <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Status</th>
+                        <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Last Seen</th>
+                        <th className="border border-gray-200 dark:border-gray-700 px-4 py-2 text-left text-sm font-medium">Ephemeral</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {server.nodes.map((node) => (
+                        <tr key={node.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 font-mono text-sm">{node.id}</td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 font-medium">{node.hostname}</td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 font-mono text-sm">{node.name}</td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Badge variant="secondary">{node.user}</Badge>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <div className="space-y-1">
+                              {node.ipAddresses?.map((ip, index) => (
+                                <div key={index} className="font-mono text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                                  <MapPin className="inline h-3 w-3 mr-1" />
+                                  {ip}
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <div className="space-y-1">
+                              <Badge variant={node.connected ? "default" : "secondary"}>
+                                {node.connected ? "Online" : "Offline"}
+                              </Badge>
+                              {node.expired && (
+                                <Badge variant="destructive">Expired</Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2 font-mono text-sm">
+                            {node.lastSeen}
+                          </td>
+                          <td className="border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <Badge variant={node.ephemeral ? "outline" : "secondary"}>
+                              {node.ephemeral ? "Yes" : "No"}
                             </Badge>
-                            {node.expired && (
-                              <Badge variant="destructive">Expired</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {node.lastSeen}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={node.ephemeral ? "outline" : "secondary"}>
-                            {node.ephemeral ? "Yes" : "No"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -292,7 +304,6 @@ const Admin = () => {
           </Card>
         )}
       </div>
-
   );
 };
 
