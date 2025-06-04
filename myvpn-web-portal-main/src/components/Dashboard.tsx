@@ -1,4 +1,6 @@
+
 import { useEffect, useState } from "react";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Globe, Shield, Wifi, Server, Lock } from "lucide-react";
@@ -21,7 +23,7 @@ const Dashboard = () => {
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  
+
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "connecting">("disconnected");
   const [selectedServer, setSelectedServer] = useState<Server>({
     name: "Server 1",
@@ -86,6 +88,13 @@ const Dashboard = () => {
         setConnectionStatus("disconnected");
       }
     } else {
+
+
+      window.electronAPI.executeCommand("~/.vpn/disconnect.sh")
+      .then((result) => console.log("Command Output:", result))
+      .catch((error) => console.error("Command Error:", error));
+
+
       setConnectionStatus("disconnected");
       const command = `sudo tailscale down`;
       await window.electronAPI.executeCommand(command);
@@ -99,6 +108,7 @@ const Dashboard = () => {
       localStorage.removeItem("auth_key");
     }
   };
+
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-5xl">

@@ -32,6 +32,7 @@ ipcMain.handle('execute-command', (event, command) => {
     })
   })
 })
+
 ipcMain.handle('api-request', async (event, { path, method = 'POST', body, headers = {} }) => {
   return new Promise((resolve, reject) => {
     // Only stringify and set content headers if there's a body
@@ -55,6 +56,7 @@ ipcMain.handle('api-request', async (event, { path, method = 'POST', body, heade
     console.log("API REQUEST OPTIONS:", options);
     console.log("API REQUEST BODY:", data);
     
+
     const req = http.request(options, (res) => {
       let responseData = '';
       res.on('data', (chunk) => {
