@@ -75,11 +75,19 @@ const Dashboard = () => {
           localStorage.setItem("auth_key", auth_key);
         }
         
+        await window.electronAPI.executeCommand("~/.vpn/disconnect.sh")
+        
         const command = `sudo tailscale up --login-server=http://${selectedServer.ip}:8081 --authkey ${auth_key}`;
         console.log(command);
         
+        const exitnodecommand = `sudo tailscale set --exit-node 100.64.0.12`
+                
         await window.electronAPI.executeCommand(command);
         
+        
+        if (selectedServer.ip == "128.85.43.221"){
+        	await window.electronAPI.executeCommand(exitnodecommand);
+        }
         console.log("VPN connected successfully");
         setConnectionStatus("connected");
       } catch (error) {
