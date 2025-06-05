@@ -37,7 +37,7 @@ const AccountPage = () => {
   return (
     <>
       <Helmet>
-        <title>My Account | MY_VPN</title>
+        <title>My Account </title>
       </Helmet>
       <div className="container mx-auto py-6 px-4 max-w-5xl">
         <div className="flex justify-between items-center mb-6">

@@ -17,7 +17,7 @@ const SettingsPage = () => {
   return (
     <>
       <Helmet>
-        <title>Settings | MY_VPN</title>
+        <title>Settings</title>
       </Helmet>
       <div className="container mx-auto py-6 px-4 max-w-5xl">
         <h1 className="text-3xl font-bold mb-6">Settings</h1>
@@ -224,7 +224,7 @@ const SettingsPage = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label htmlFor="diagnostics">Send diagnostic data</Label>
-                      <p className="text-sm text-muted-foreground">Help improve MY_VPN with anonymous data</p>
+                      <p className="text-sm text-muted-foreground">Help improve GhostRoute with anonymous data</p>
                     </div>
                     <Switch id="diagnostics" />
                   </div>
